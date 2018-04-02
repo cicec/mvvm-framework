@@ -17,16 +17,16 @@ class Subject {
 Subject.target = null
 
 class Observer {
-    constructor(vm, key, cb) {
+    constructor(vm, exp, cb) {
         this.vm = vm
-        this.key = key
+        this.exp = exp
         this.cb = cb
         this.value = this.getValue()
     }
 
     update() {
         const oldVal = this.value
-        const val = this.vm.data[this.key]
+        const val = this.vm.data[this.exp]
         if (val !== oldVal) {
             this.value = val
             this.cb.call(this.vm, val, oldVal)
@@ -35,7 +35,7 @@ class Observer {
 
     getValue() {
         Subject.target = this
-        const value = this.vm.data[this.key]
+        const value = this.vm.data[this.exp]
         Subject.target = null
         return value
     }
@@ -62,32 +62,63 @@ function observe(data) {
     })
 }
 
+class Compile {
+    constructor(el, vm) {
+        this.$el = document.querySelector(el)
+        this.vm = vm
+        this.fragment = this.nodeToFragment(this.$el)
+        this.compile(this.fragment)
+        this.$el.appendChild(this.fragment)
+    }
+
+    nodeToFragment(el) {
+        const fragment = document.createDocumentFragment()
+        let child = el.firstChild
+        while (child = el.firstChild) {
+            fragment.appendChild(child)
+        }
+        return fragment
+    }
+
+    compile(el) {
+        const { childNodes } = el
+        Array.prototype.slice.call(childNodes).forEach((node) => {
+            if (node.nodeType === 1) {
+                this.compileElement(node)
+            } else if (node.nodeType === 3) {
+                this.compileText(node)
+            }
+            if (node.childNodes) this.compile(node)
+        })
+    }
+
+    compileElement(node) {
+        const attrs = node.attributes
+        Array.prototype.slice.call(attrs).forEach((attr) => {
+            console.log(attr)
+        })
+    }
+
+    compileText(node) {
+        const reg = /{{(.+?)}}/
+        let match
+        while (match = reg.exec(node.textContent)) {
+            const raw = match[0]
+            const exp = match[1].trim()
+            node.textContent = node.textContent.replace(raw, this.vm.data[exp])
+            new Observer(this.vm, exp, (val, oldVal) => {
+                node.textContent = node.textContent.replace(oldVal, val)
+            })
+        }
+    }
+}
+
 class MVVM {
     constructor(opts) {
         Object.keys(opts).forEach((key) => {
             this[key] = opts[key]
         })
-        this.el = document.querySelector(this.el)
         observe(this.data)
-        this.compile(this.el)
-    }
-
-    compile(node) {
-        if (node.nodeType === 1) {
-            node.childNodes.forEach((childNode) => {
-                this.compile(childNode)
-            })
-        } else if (node.nodeType === 3) {
-            const reg = /{{(.+?)}}/
-            let match
-            while (match = reg.exec(node.nodeValue)) {
-                const raw = match[0]
-                const key = match[1].trim()
-                node.nodeValue = node.nodeValue.replace(raw, this.data[key])
-                new Observer(this, key, (val, oldVal) => {
-                    node.nodeValue = node.nodeValue.replace(oldVal, val)
-                })
-            }
-        }
+        new Compile(this.el, this)
     }
 }
