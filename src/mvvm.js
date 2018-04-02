@@ -26,7 +26,7 @@ class Observer {
 
     update() {
         const oldVal = this.value
-        const val = this.vm.data[this.exp]
+        const val = this.vm[this.exp]
         if (val !== oldVal) {
             this.value = val
             this.cb.call(this.vm, val, oldVal)
@@ -35,7 +35,7 @@ class Observer {
 
     getValue() {
         Subject.target = this
-        const value = this.vm.data[this.exp]
+        const value = this.vm[this.exp]
         Subject.target = null
         return value
     }
@@ -64,11 +64,11 @@ function observe(data) {
 
 class Compile {
     constructor(el, vm) {
-        this.$el = document.querySelector(el)
+        this.el = el
         this.vm = vm
-        this.fragment = this.nodeToFragment(this.$el)
+        this.fragment = this.nodeToFragment(this.el)
         this.compile(this.fragment)
-        this.$el.appendChild(this.fragment)
+        this.el.appendChild(this.fragment)
     }
 
     nodeToFragment(el) {
@@ -98,13 +98,13 @@ class Compile {
             if (attr.name.indexOf('v-') === 0) {
                 if (attr.name.substring(2).indexOf('on:') === 0) {
                     const eventType = attr.name.split(':')[1]
-                    const cb = this.vm.methods[attr.value]
+                    const cb = this.vm.$methods[attr.value]
                     node.addEventListener(eventType, cb)
                 } else {
-                    node.value = this.vm.data[attr.value]
+                    node.value = this.vm[attr.value]
                     node.addEventListener('input', (event) => {
                         const val = event.target.value
-                        this.vm.data[attr.value] = val
+                        this.vm[attr.value] = val
                     })
                 }
             }
@@ -117,7 +117,7 @@ class Compile {
         while (match = reg.exec(node.textContent)) {
             const raw = match[0]
             const exp = match[1].trim()
-            node.textContent = node.textContent.replace(raw, this.vm.data[exp])
+            node.textContent = node.textContent.replace(raw, this.vm[exp])
             new Observer(this.vm, exp, (val, oldVal) => {
                 node.textContent = node.textContent.replace(oldVal, val)
             })
@@ -127,10 +127,21 @@ class Compile {
 
 class MVVM {
     constructor(opts) {
-        Object.keys(opts).forEach((key) => {
-            this[key] = opts[key]
+        this.$el = document.querySelector(opts.el)
+        this.$data = opts.data || {}
+        this.$methods = opts.methods || {}
+        Object.keys(this.$data).forEach((key) => {
+            Object.defineProperty(this, key, {
+                enumerable: true,
+                configurable: false,
+                get: () => this.$data[key],
+                set: (newVal) => { this.$data[key] = newVal }
+            })
         })
-        observe(this.data)
-        new Compile(this.el, this)
+        Object.keys(this.$methods).forEach((key) => {
+            this.$methods[key] = this.$methods[key].bind(this)
+        })
+        observe(this.$data)
+        new Compile(this.$el, this)
     }
 }
