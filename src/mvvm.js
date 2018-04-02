@@ -81,8 +81,8 @@ class Compile {
     }
 
     compile(el) {
-        const { childNodes } = el
-        Array.prototype.slice.call(childNodes).forEach((node) => {
+        const childNodes = [...el.childNodes]
+        childNodes.forEach((node) => {
             if (node.nodeType === 1) {
                 this.compileElement(node)
             } else if (node.nodeType === 3) {
@@ -93,9 +93,21 @@ class Compile {
     }
 
     compileElement(node) {
-        const attrs = node.attributes
-        Array.prototype.slice.call(attrs).forEach((attr) => {
-            console.log(attr)
+        const attrs = [...node.attributes]
+        attrs.forEach((attr) => {
+            if (attr.name.indexOf('v-') === 0) {
+                if (attr.name.substring(2).indexOf('on:') === 0) {
+                    const eventType = attr.name.split(':')[1]
+                    const cb = this.vm.methods[attr.value]
+                    node.addEventListener(eventType, cb)
+                } else {
+                    node.value = this.vm.data[attr.value]
+                    node.addEventListener('input', (event) => {
+                        const val = event.target.value
+                        this.vm.data[attr.value] = val
+                    })
+                }
+            }
         })
     }
 
