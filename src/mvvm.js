@@ -102,6 +102,9 @@ class Compile {
                     node.addEventListener(eventType, cb)
                 } else {
                     node.value = this.vm[attr.value]
+                    new Observer(this.vm, attr.value, () => {
+                        node.value = this.vm[attr.value]
+                    })
                     node.addEventListener('input', (event) => {
                         const val = event.target.value
                         this.vm[attr.value] = val
