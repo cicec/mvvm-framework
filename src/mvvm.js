@@ -148,3 +148,5 @@ class MVVM {
         new Compile(this.$el, this)
     }
 }
+
+window.MVVM = MVVM
