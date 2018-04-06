@@ -120,9 +120,12 @@ class Compile {
         while (match = reg.exec(node.textContent)) {
             const raw = match[0]
             const exp = match[1].trim()
+            const index = node.textContent.indexOf(raw)
             node.textContent = node.textContent.replace(raw, this.vm[exp])
             new Observer(this.vm, exp, (val, oldVal) => {
-                node.textContent = node.textContent.replace(oldVal, val)
+                const beforeVal = node.textContent.slice(0, index)
+                const afterVal = node.textContent.slice(index + oldVal.toString().length)
+                node.textContent = beforeVal + val + afterVal
             })
         }
     }

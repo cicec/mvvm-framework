@@ -10,7 +10,7 @@
 
 <body>
     <div id="app">
-        <h1>{{ name }}, {{ welcome }}</h1>
+        <h1>{{ welcome }}, {{ name }}！</h1>
         <input v-model="name" type="text" placeholder="name">
         <button v-on:click="sayHi">点我</button>
     </div>
@@ -20,12 +20,12 @@
         const vm = new MVVM({
             el: '#app',
             data: {
-                name: 'CC',
-                welcome: '你好！'
+                welcome: '你好',
+                name: 'CC'
             },
             methods: {
                 sayHi() {
-                    alert(`${this.name}, ${this.welcome}`)
+                    alert(`${this.welcome}, ${this.name}！`)
                 }
             }
         })
